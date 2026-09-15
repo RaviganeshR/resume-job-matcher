@@ -1,0 +1,122 @@
+[
+  {
+    "id": "JD01",
+    "title": "Senior Frontend Engineer",
+    "skills": "React, TypeScript, Next.js, Redux, Tailwind CSS, Webpack",
+    "summary": "Build responsive, high-performance web applications, optimize core web vitals, and lead UI architecture."
+  },
+  {
+    "id": "JD02",
+    "title": "Backend Python Developer",
+    "skills": "Python, FastAPI, Django, PostgreSQL, Redis, Docker",
+    "summary": "Design scalable RESTful APIs, manage asynchronous workers with Celery, and optimize database queries."
+  },
+  {
+    "id": "JD03",
+    "title": "DevOps & Cloud Engineer",
+    "skills": "AWS, Terraform, Kubernetes, Docker, CI/CD, GitHub Actions",
+    "summary": "Manage multi-region cloud infrastructure, automate deployment pipelines, and ensure 99.9% uptime."
+  },
+  {
+    "id": "JD04",
+    "title": "Data Platform Engineer",
+    "skills": "Apache Spark, Python, Kafka, Snowflake, Airflow, SQL",
+    "summary": "Construct distributed big data pipelines, manage streaming infrastructure, and maintain the enterprise data warehouse."
+  },
+  {
+    "id": "JD05",
+    "title": "Machine Learning Engineer",
+    "skills": "PyTorch, Python, Hugging Face, MLOps, MLflow, Vector Databases",
+    "summary": "Train and fine-tune transformer models, package models for low-latency inference, and monitor drift in production."
+  },
+  {
+    "id": "JD06",
+    "title": "Full Stack Engineer (Node/React)",
+    "skills": "Node.js, Express, React, TypeScript, MongoDB, GraphQL",
+    "summary": "End-to-end product development across single-page applications and microservice backends in an agile environment."
+  },
+  {
+    "id": "JD07",
+    "title": "Site Reliability Engineer (SRE)",
+    "skills": "Linux, Prometheus, Grafana, Kubernetes, Golang, Incident Management",
+    "summary": "Drive observability, establish SLIs/SLOs, automate failure recovery, and optimize infrastructure costs."
+  },
+  {
+    "id": "JD08",
+    "title": "iOS Mobile Developer",
+    "skills": "Swift, SwiftUI, Combine, iOS SDK, CoreData, REST APIs",
+    "summary": "Develop consumer-facing iOS applications, implement smooth animations, and adhere to Apple Human Interface Guidelines."
+  },
+  {
+    "id": "JD09",
+    "title": "Android Engineer",
+    "skills": "Kotlin, Jetpack Compose, Coroutines, MVVM, Room DB",
+    "summary": "Architect modern Android apps, streamline background sync operations, and maintain high crash-free session rates."
+  },
+  {
+    "id": "JD10",
+    "title": "QA Automation Engineer",
+    "skills": "Cypress, Playwright, Selenium, JavaScript, CI/CD, Test Planning",
+    "summary": "Design automated end-to-end and regression test suites, report defects, and integrate testing into release pipelines."
+  },
+  {
+    "id": "JD11",
+    "title": "Cybersecurity Analyst",
+    "skills": "SIEM, SOC, Penetration Testing, Wireshark, Incident Response, NIST",
+    "summary": "Monitor security events, identify vulnerabilities, perform network traffic inspection, and enforce security policies."
+  },
+  {
+    "id": "JD12",
+    "title": "Database Administrator (DBA)",
+    "skills": "PostgreSQL, MySQL, Database Replication, Query Optimization, High Availability",
+    "summary": "Maintain enterprise relational databases, design disaster recovery strategies, and eliminate slow-running queries."
+  },
+  {
+    "id": "JD13",
+    "title": "Technical Product Manager",
+    "skills": "Agile, Jira, PRD Writing, Roadmapping, Stakeholder Management, User Stories",
+    "summary": "Translate customer feedback into technical requirements, guide engineering teams, and deliver product milestones."
+  },
+  {
+    "id": "JD14",
+    "title": "Golang Systems Engineer",
+    "skills": "Go, gRPC, Protobuf, Distributed Systems, Microservices, Docker",
+    "summary": "Develop low-latency network protocols, write concurrent distributed microservices, and manage high-throughput RPCs."
+  },
+  {
+    "id": "JD15",
+    "title": "Embedded Software Engineer",
+    "skills": "C, C++, RTOS, Microcontrollers, ARM, I2C, SPI",
+    "summary": "Write firmware for IoT and edge devices, read hardware schematics, and debug with oscilloscopes and logic analyzers."
+  },
+  {
+    "id": "JD16",
+    "title": "BI & Analytics Specialist",
+    "skills": "PowerBI, Tableau, Advanced SQL, Data Modeling, DAX, Excel",
+    "summary": "Transform raw analytical tables into executive KPI dashboards and advise leadership on business trends."
+  },
+  {
+    "id": "JD17",
+    "title": "Cloud Security Architect",
+    "skills": "AWS IAM, Azure AD, Zero Trust, Compliance (SOC2/HIPAA), Terraform",
+    "summary": "Audit cloud architectures, implement role-based access controls, and ensure compliance across multi-tenant environments."
+  },
+  {
+    "id": "JD18",
+    "title": "Java Enterprise Architect",
+    "skills": "Java 17, Spring Boot, Hibernate, Kafka, Microservices, Oracle DB",
+    "summary": "Design resilient corporate architectures, refactor legacy monoliths, and govern enterprise integration standards."
+  },
+  {
+    "id": "JD19",
+    "title": "Scrum Master / Agile Coach",
+    "skills": "Scrum, Kanban, Retrospectives, Velocity Tracking, Jira, Confluence",
+    "summary": "Facilitate daily standups, unblock development teams, coordinate sprint planning, and promote continuous team improvement."
+  },
+  {
+    "id": "JD20",
+    "title": "Blockchain & Smart Contract Engineer",
+    "skills": "Solidity, Ethereum, Hardhat, Web3.js, Rust, Smart Contract Auditing",
+    "summary": "Develop secure decentralized protocols, audit gas optimization, and interface smart contracts with web client applications."
+  }
+]

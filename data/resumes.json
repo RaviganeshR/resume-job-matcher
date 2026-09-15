@@ -1,0 +1,37 @@
+[
+  {
+    "id": "CAND_01",
+    "name": "Sarah Chen",
+    "current_title": "Web UI Specialist",
+    "skills": "JavaScript (ES6+), React.js, Tailwind, Next.js, Redux Toolkit, Web Vitals",
+    "summary": "5 years designing modern frontends, building reusable component libraries, and speeding up client-side page load times."
+  },
+  {
+    "id": "CAND_02",
+    "name": "David Miller",
+    "current_title": "Cloud Operations Specialist",
+    "skills": "Amazon Web Services, Docker containers, Infrastructure as Code, Terraform, Jenkins, Helm",
+    "summary": "Platform engineer experienced in deploying containerized clusters, provisioning VPCs, and automating delivery pipelines."
+  },
+  {
+    "id": "CAND_03",
+    "name": "Elena Rostova",
+    "current_title": "Big Data Specialist",
+    "skills": "PySpark, Hadoop ecosystem, Kafka streaming, Snowflake warehouse, Airflow orchestrator, SQL",
+    "summary": "Data engineer building large-scale batch and streaming pipelines, ingestion pipelines, and analytical data marts."
+  },
+  {
+    "id": "CAND_04",
+    "name": "Marcus Vance",
+    "current_title": "Backend API Developer",
+    "skills": "Python, FastAPI framework, relational databases, PostgreSQL, Celery task queue, Redis caching",
+    "summary": "Specialized in microservice backends, REST API performance, query tuning, and asynchronous processing."
+  },
+  {
+    "id": "CAND_05",
+    "name": "Amina Patel",
+    "current_title": "Software Quality Analyst",
+    "skills": "Test automation, Cypress, JavaScript, Playwright, end-to-end testing, bug tracking",
+    "summary": "Focuses on automated UI testing, preventing regressions before deployment, and working directly with sprint developers."
+  }
+]

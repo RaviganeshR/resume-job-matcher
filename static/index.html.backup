@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HR Semantic Resume & Job Matcher</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF and AutoTable plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          TalentVector Semantic Matcher
+        </h1>
+        <p class="text-sm text-slate-400 mt-1">
+          Multi-format resume parsing (PDF, DOCX, CSV) with dense vector
+          cosine ranking
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="openUploadModal()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+          Upload Resume (PDF/DOCX/CSV)
+        </button>
+        <button onclick="openJobModal()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          + Add New JD
+        </button>
+      </div>
+    </header>
+
+    <!-- Controls & Job Selection -->
+    <div class="bg-slate-800/60 border border-slate-700 p-6 rounded-xl mb-8">
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        Select Target Job Description to Rank Resumes Against:
+      </label>
+      <select id="jobSelect" onchange="runMatch()"
+        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
+        <option value="">Loading jobs...</option>
+      </select>
+
+      <div id="jobDetails" class="mt-4 p-4 bg-slate-900/60 rounded-lg border border-slate-800 hidden">
+        <h3 id="jobTitleDisplay" class="font-semibold text-emerald-400 text-base"></h3>
+        <p id="jobSkillsDisplay" class="text-xs text-slate-400 mt-1"></p>
+        <p id="jobSummaryDisplay" class="text-sm text-slate-300 mt-2"></p>
+      </div>
+    </div>
+
+    <!-- Ranked Candidates Section -->
+    <!-- Ranked Candidates Section -->
+    <div>
+      <div class="flex flex-wrap items-center justify-between mb-4 gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-white">
+            Ranked Candidate Profiles
+          </h2>
+          <span id="candidateCount" class="text-xs text-slate-500"></span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Single PDF Download Button -->
+          <button onclick="downloadRankedPDF()"
+            class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 shadow-sm">
+            <svg class="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+            </svg>
+            Download PDF Report
+          </button>
+
+          <span id="matchStatus" class="text-xs text-slate-400 ml-2">Select a job above to view semantic ranking</span>
+        </div>
+      </div>
+
+      <div id="resultsContainer" class="space-y-4">
+        <!-- Dynamically injected -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Resume Modal -->
+  <div id="uploadModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6">
+      <h3 class="text-lg font-bold text-white mb-2">
+        Upload Candidate Resume
+      </h3>
+      <p class="text-xs text-slate-400 mb-4">
+        Supported formats: PDF (.pdf), Word (.docx), Plain Text (.txt), or
+        Multi-Candidate CSV (.csv)
+      </p>
+
+      <form id="uploadForm" onsubmit="handleResumeUpload(event)" class="space-y-4">
+        <div
+          class="border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl p-6 text-center transition cursor-pointer"
+          onclick="document.getElementById('resumeFileInput').click()">
+          <input id="resumeFileInput" type="file" accept=".pdf,.docx,.txt,.csv" class="hidden"
+            onchange="updateFileName(this)" required />
+          <svg class="w-8 h-8 text-indigo-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+            </path>
+          </svg>
+          <span id="selectedFileLabel" class="text-sm text-slate-300">Click to browse or drop file here</span>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Candidate Name (Optional for PDF/DOCX)</label>
+          <input id="uploadName" type="text" placeholder="e.g., Alex Johnson"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Current Title (Optional)</label>
+          <input id="uploadTitle" type="text" placeholder="e.g., Senior Systems Engineer"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeUploadModal()"
+            class="px-4 py-2 rounded text-slate-400 hover:text-white text-sm">
+            Cancel
+          </button>
+          <button id="uploadSubmitBtn" type="submit"
+            class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-white text-sm font-medium">
+            Extract & Ingest
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Candidate Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6">
+      <h3 class="text-lg font-bold text-white mb-4">
+        Edit Candidate Profile
+      </h3>
+      <input type="hidden" id="editCandId" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Full Name</label>
+          <input id="editName" type="text"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Current / Target Title</label>
+          <input id="editTitle" type="text"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Skills (comma separated)</label>
+          <input id="editSkills" type="text"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Summary / Experience Background</label>
+          <textarea id="editSummary" rows="4"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeEditModal()" class="px-4 py-2 rounded text-slate-400 hover:text-white text-sm">
+          Cancel
+        </button>
+        <button onclick="saveCandidateEdit()"
+          class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-white text-sm font-medium">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Job Modal -->
+  <div id="jobModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6">
+      <h3 class="text-lg font-bold text-white mb-4">
+        Add New Job Description
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Job ID</label>
+          <input id="newId" type="text" placeholder="e.g., JD21"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Job Title</label>
+          <input id="newTitle" type="text" placeholder="e.g., Cloud Architect"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Required Skills (comma separated)</label>
+          <input id="newSkills" type="text" placeholder="AWS, Terraform, Kubernetes"
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Role Summary</label>
+          <textarea id="newSummary" rows="3" placeholder="Lead cloud architecture, design landing zones..."
+            class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeJobModal()" class="px-4 py-2 rounded text-slate-400 hover:text-white text-sm">
+          Cancel
+        </button>
+        <button onclick="submitNewJob()"
+          class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded text-white text-sm font-medium">
+          Save Opening
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allJobs = [];
+    let currentRankings = [];
+
+    async function init() {
+      const res = await fetch("/api/data");
+      const data = await res.json();
+      allJobs = data.jobs;
+
+      const select = document.getElementById("jobSelect");
+      select.innerHTML = allJobs
+        .map((j) => `<option value="${j.id}">${j.title} (${j.id})</option>`)
+        .join("");
+
+      if (allJobs.length > 0) {
+        runMatch();
+      }
+    }
+
+    async function runMatch() {
+      const jobId = document.getElementById("jobSelect").value;
+      if (!jobId) return;
+
+      const selected = allJobs.find((j) => j.id === jobId);
+      if (selected) {
+        document.getElementById("jobDetails").classList.remove("hidden");
+        document.getElementById("jobTitleDisplay").innerText =
+          `${selected.title} (${selected.id})`;
+        document.getElementById("jobSkillsDisplay").innerText =
+          `Skills: ${selected.skills}`;
+        document.getElementById("jobSummaryDisplay").innerText =
+          selected.summary;
+      }
+
+      document.getElementById("matchStatus").innerText =
+        "Calculating dense embeddings & cosine similarity...";
+      const res = await fetch(`/api/match/${jobId}`);
+      const data = await res.json();
+
+      currentRankings = data.rankings || [];
+      document.getElementById("candidateCount").innerText =
+        `(${currentRankings.length} total profiles)`;
+      document.getElementById("matchStatus").innerText =
+        `Ranked against ${selected.title}`;
+      renderRankings(currentRankings);
+    }
+
+    function renderRankings(rankings) {
+      const container = document.getElementById("resultsContainer");
+      if (rankings.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-500 bg-slate-800/40 rounded-xl">No candidates available. Click "Upload PDF Resume" to add profiles.</div>`;
+        return;
+      }
+
+      container.innerHTML = rankings
+        .map((item, idx) => {
+          const c = item.candidate;
+          const pct = item.match_percentage;
+          const evalData = item.evaluation || {};
+
+          let badgeColor = "bg-rose-900/40 text-rose-300 border-rose-800";
+          let barColor = "bg-rose-500";
+          if (pct >= 80) {
+            badgeColor = "bg-emerald-900/40 text-emerald-300 border-emerald-800";
+            barColor = "bg-emerald-500";
+          } else if (pct >= 60) {
+            badgeColor = "bg-indigo-900/40 text-indigo-300 border-indigo-800";
+            barColor = "bg-indigo-500";
+          } else if (pct >= 45) {
+            badgeColor = "bg-amber-900/40 text-amber-300 border-amber-800";
+            barColor = "bg-amber-500";
+          }
+
+          return `
+      <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start gap-4 flex-1">
+          <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm text-slate-300 flex-shrink-0">
+            #${idx + 1}
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class="text-base font-semibold text-white">${c.name}</h4>
+              <span class="text-xs text-slate-400">· ${c.current_title}</span>
+              <span class="text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded font-mono">${c.id}</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1"><span class="text-slate-500">Skills:</span> ${c.skills}</p>
+            <p class="text-xs text-slate-300 mt-1 line-clamp-2">${c.summary}</p>
+            
+            <!-- Agent 3 Screening Insights -->
+            <div class="mt-2.5 p-2.5 bg-slate-900/70 rounded-lg border border-slate-750 text-xs">
+              <div class="text-emerald-400 font-medium">HR Advisory Action: <span class="text-slate-200 font-normal">${evalData.recommendation || item.verdict}</span></div>
+              <div class="text-slate-400 mt-0.5"><span class="text-slate-500">Interview Focus:</span> ${evalData.interview_focus || 'Standard technical screen.'}</div>
+            </div>
+
+            <!-- Edit & Delete Buttons -->
+            <div class="flex items-center gap-3 mt-3">
+              <button onclick="openEditModal('${c.id}')" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                Edit
+              </button>
+              <button onclick="deleteCandidate('${c.id}')" class="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full md:w-56 flex-shrink-0 flex flex-col items-end">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs px-2 py-0.5 rounded border ${badgeColor}">${item.verdict}</span>
+            <span class="text-lg font-bold text-white">${pct}%</span>
+          </div>
+          <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+            <div class="${barColor} h-full" style="width: ${pct}%"></div>
+          </div>
+          <span class="text-[10px] text-slate-500 mt-1">Cosine: ${item.raw_cosine}</span>
+        </div>
+      </div>
+    `;
+        })
+        .join("");
+    }
+    // --- Download / Export Helpers ---
+
+    function downloadRankedPDF() {
+      if (!currentRankings || currentRankings.length === 0) {
+        alert("No ranked candidates to download.");
+        return;
+      }
+
+      // Safe fallback resolver for jsPDF constructor
+      const jsPdfConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      if (!jsPdfConstructor) {
+        alert("PDF generator library is not ready or failed to load. Please check your internet connection.");
+        return;
+      }
+
+      const doc = new jsPdfConstructor({ orientation: "portrait", unit: "pt", format: "a4" });
+
+      const selectedJobId = document.getElementById("jobSelect").value;
+      const selectedJob = allJobs.find((j) => j.id === selectedJobId);
+      const jobTitle = selectedJob ? selectedJob.title : "Target Role";
+
+      // Document Title Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(30, 41, 59);
+      doc.text("TalentVector AI - Candidate Ranking Report", 40, 45);
+
+      // Subtitle & Role details
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Target Role: ${jobTitle} (${selectedJobId})`, 40, 65);
+      doc.text(`Generated: ${new Date().toLocaleString()} | Total Candidates: ${currentRankings.length}`, 40, 80);
+
+      // Table Data
+      // const tableHeaders = [["Rank", "Candidate Name", "Current Title", "Match %", "Verdict", "Cosine"]];
+      const tableHeaders = [["Rank", "Candidate Name", "Current Title", "Match %", "Verdict"]];
+      const tableRows = currentRankings.map((item, idx) => [
+        `#${idx + 1}`,
+        item.candidate.name,
+        item.candidate.current_title,
+        `${item.match_percentage}%`,
+        item.verdict,
+        // Number(item.raw_cosine).toFixed(3)
+      ]);
+
+      // Render Table via autoTable
+      doc.autoTable({
+        startY: 95,
+        head: tableHeaders,
+        body: tableRows,
+        theme: "grid",
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 9,
+        },
+        bodyStyles: {
+          textColor: [51, 65, 85],
+          fontSize: 8.5,
+          cellPadding: 6,
+        },
+        columnStyles: {
+          0: { cellWidth: 40, halign: "center" },
+          1: { cellWidth: 120, fontStyle: "bold" },
+          2: { cellWidth: 140 },
+          3: { cellWidth: 60, halign: "center" },
+          4: { cellWidth: 90, halign: "center" },
+          5: { cellWidth: 55, halign: "center" },
+        }
+      });
+
+      const filename = `Candidate_Rankings_${selectedJobId}_${Date.now()}.pdf`;
+      doc.save(filename);
+    }
+    // Modal and file upload handlers
+    function openUploadModal() {
+      document.getElementById("uploadModal").classList.remove("hidden");
+    }
+    function closeUploadModal() {
+      document.getElementById("uploadModal").classList.add("hidden");
+      document.getElementById("uploadForm").reset();
+      document.getElementById("selectedFileLabel").innerText =
+        "Click to browse or drop file here";
+    }
+    function updateFileName(input) {
+      if (input.files.length > 0) {
+        document.getElementById("selectedFileLabel").innerText =
+          input.files[0].name;
+      }
+    }
+
+    async function handleResumeUpload(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById("resumeFileInput");
+      if (!fileInput.files.length) return;
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("name", document.getElementById("uploadName").value);
+      formData.append("title", document.getElementById("uploadTitle").value);
+
+      const btn = document.getElementById("uploadSubmitBtn");
+      btn.innerText = "Extracting text...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/upload-resume", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.detail || "Upload failed");
+
+        closeUploadModal();
+        await runMatch();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.innerText = "Extract & Ingest";
+        btn.disabled = false;
+      }
+    }
+
+    // Edit Candidate
+    function openEditModal(candId) {
+      const match = currentRankings.find((r) => r.candidate.id === candId);
+      if (!match) return;
+      const c = match.candidate;
+
+      document.getElementById("editCandId").value = c.id;
+      document.getElementById("editName").value = c.name;
+      document.getElementById("editTitle").value = c.current_title;
+      document.getElementById("editSkills").value = c.skills;
+      document.getElementById("editSummary").value = c.summary;
+
+      document.getElementById("editModal").classList.remove("hidden");
+    }
+
+    function closeEditModal() {
+      document.getElementById("editModal").classList.add("hidden");
+    }
+
+    async function saveCandidateEdit() {
+      const candId = document.getElementById("editCandId").value;
+      const payload = {
+        name: document.getElementById("editName").value.trim(),
+        current_title: document.getElementById("editTitle").value.trim(),
+        skills: document.getElementById("editSkills").value.trim(),
+        summary: document.getElementById("editSummary").value.trim(),
+      };
+
+      await fetch(`/api/resumes/${candId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      closeEditModal();
+      runMatch();
+    }
+
+    // Delete Candidate
+    async function deleteCandidate(candId) {
+      if (!confirm(`Are you sure you want to delete profile ${candId}?`))
+        return;
+
+      await fetch(`/api/resumes/${candId}`, { method: "DELETE" });
+      runMatch();
+    }
+
+    // Add Job Modal
+    function openJobModal() {
+      document.getElementById("jobModal").classList.remove("hidden");
+    }
+    function closeJobModal() {
+      document.getElementById("jobModal").classList.add("hidden");
+    }
+    async function submitNewJob() {
+      const id = document.getElementById("newId").value.trim();
+      const title = document.getElementById("newTitle").value.trim();
+      const skills = document.getElementById("newSkills").value.trim();
+      const summary = document.getElementById("newSummary").value.trim();
+
+      if (!id || !title) return alert("Please provide ID and Title");
+
+      await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, title, skills, summary }),
+      });
+
+      closeJobModal();
+      await init();
+      document.getElementById("jobSelect").value = id;
+      runMatch();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+
+</html>

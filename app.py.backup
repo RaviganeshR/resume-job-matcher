@@ -1,0 +1,261 @@
+import io
+import json
+import numpy as np
+from typing import List, Dict, Any
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from pypdf import PdfReader
+
+# ==============================================================================
+# AGENT 1: Document Extraction Agent
+# Role: Autonomous Ingestion & Text Normalization Specialist
+# ==============================================================================
+class DocumentExtractionAgent:
+    def __init__(self):
+        self.name = "DocExtractAgent-v1"
+
+    def execute(self, file_bytes: bytes, filename: str) -> Dict[str, Any]:
+        """Inspects and parses PDF documents into normalized text structures."""
+        extracted_text = ""
+        try:
+            reader = PdfReader(io.BytesIO(file_bytes))
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    extracted_text += page_text + " "
+        except Exception as e:
+            raise ValueError(f"Agent failed to read PDF stream: {str(e)}")
+
+        cleaned_text = " ".join(extracted_text.split())
+        
+        # Agent quality evaluation
+        if not cleaned_text:
+            raise ValueError("Agent detected unreadable or empty document content.")
+
+        return {
+            "status": "extracted",
+            "character_count": len(cleaned_text),
+            "text": cleaned_text
+        }
+
+
+# ==============================================================================
+# AGENT 2: Semantic Matching Agent
+# Role: Vectorization & High-Dimensional Cosine Analyst
+# ==============================================================================
+class SemanticMatchingAgent:
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.name = "VectorMatchAgent-v1"
+        print(f"[{self.name}] Initializing Transformer model: {model_name}...")
+        self.encoder = SentenceTransformer(model_name)
+
+    def encode_text(self, text: str) -> np.ndarray:
+        return self.encoder.encode([text], normalize_embeddings=True)[0]
+
+    def encode_batch(self, texts: List[str]) -> np.ndarray:
+        return self.encoder.encode(texts, normalize_embeddings=True)
+
+    def calculate_similarity(self, candidate_vectors: np.ndarray, job_vector: np.ndarray) -> np.ndarray:
+        return cosine_similarity(candidate_vectors, job_vector.reshape(1, -1)).flatten()
+
+    def calibrate_score(self, raw_cosine: float) -> Dict[str, Any]:
+        # Calibrate 0.20 -> 40%, 0.80+ -> 95%+
+        calibrated = max(0.0, min(1.0, (raw_cosine - 0.20) / 0.65))
+        pct = round(calibrated * 100, 1)
+
+        if pct >= 80:
+            verdict = "Strong Match"
+        elif pct >= 60:
+            verdict = "Transferable"
+        elif pct >= 45:
+            verdict = "Moderate"
+        else:
+            verdict = "Low Alignment"
+
+        return {"percentage": pct, "verdict": verdict}
+
+
+# ==============================================================================
+# AGENT 3: HR Screening & Advisory Agent
+# Role: Candidate Evaluation, Gap Analysis & Interview Formulation
+# ==============================================================================
+class HRScreeningAdvisorAgent:
+    def __init__(self):
+        self.name = "HRScreenerAgent-v1"
+
+    def evaluate_candidate(self, candidate: Dict[str, Any], job: Dict[str, Any], score_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Evaluates contextual fit, identifies matched skills vs gaps, 
+        and formulates candidate-specific screening focus.
+        """
+        job_skills = [s.strip().lower() for s in job.get("skills", "").split(",") if s.strip()]
+        cand_text = f"{candidate.get('skills', '')} {candidate.get('summary', '')}".lower()
+
+        matched_skills = [s for s in job_skills if s in cand_text]
+        skill_gaps = [s for s in job_skills if s not in cand_text]
+
+        pct = score_data["percentage"]
+        if pct >= 80:
+            recommendation = "Fast-track to Technical Interview"
+            focus_area = "Assess system depth, scale scenarios, and team leadership."
+        elif pct >= 60:
+            recommendation = "Screen for transferable competencies"
+            focus_area = f"Validate willingness to upskill in: {', '.join(skill_gaps[:2]) if skill_gaps else 'domain tools'}."
+        else:
+            recommendation = "Hold / Keep on file for alternative openings"
+            focus_area = "Profile does not currently meet core architectural baseline."
+
+        return {
+            "matched_skills": matched_skills,
+            "skill_gaps": skill_gaps,
+            "recommendation": recommendation,
+            "interview_focus": focus_area
+        }
+
+
+# ==============================================================================
+# ORCHESTRATION & API LAYER
+# ==============================================================================
+app = FastAPI(title="TalentVector Multi-Agent Matcher")
+
+# Initialize Agents
+extractor_agent = DocumentExtractionAgent()
+matching_agent = SemanticMatchingAgent()
+advisor_agent = HRScreeningAdvisorAgent()
+
+# Load baseline data
+with open("data/jobs.json", "r") as f:
+    jobs = json.load(f)
+
+with open("data/resumes.json", "r") as f:
+    resumes = json.load(f)
+
+
+def format_job_text(job):
+    return f"Role: {job['title']}. Required Skills: {job['skills']}. Responsibilities: {job['summary']}"
+
+
+def format_resume_text(resume):
+    return f"Candidate: {resume['name']}. Current Role: {resume['current_title']}. Technical Competencies: {resume['skills']}. Background: {resume['summary']}"
+
+
+# Pre-compute job vector bank
+job_texts = [format_job_text(j) for j in jobs]
+job_embeddings = matching_agent.encode_batch(job_texts)
+
+
+class UpdateCandidateRequest(BaseModel):
+    name: str
+    current_title: str
+    skills: str
+    summary: str
+
+
+@app.get("/api/data")
+def get_data():
+    return {"jobs": jobs, "resumes": resumes}
+
+
+@app.get("/api/match/{job_id}")
+def match_job(job_id: str):
+    """Orchestrates Agent 2 (Matching) and Agent 3 (Advisor) over the candidate pool."""
+    if not resumes:
+        return {"job": None, "rankings": []}
+
+    job_idx = next((idx for idx, j in enumerate(jobs) if j["id"] == job_id), None)
+    if job_idx is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    selected_job = jobs[job_idx]
+    selected_job_vector = job_embeddings[job_idx]
+
+    # Agent 2 encodes candidate pool and calculates similarity
+    cand_texts = [format_resume_text(r) for r in resumes]
+    cand_embeddings = matching_agent.encode_batch(cand_texts)
+    raw_scores = matching_agent.calculate_similarity(cand_embeddings, selected_job_vector)
+
+    results = []
+    for idx, cand in enumerate(resumes):
+        raw_score = float(raw_scores[idx])
+        score_data = matching_agent.calibrate_score(raw_score)
+
+        # Agent 3 performs qualitative screening evaluation
+        evaluation = advisor_agent.evaluate_candidate(cand, selected_job, score_data)
+
+        results.append({
+            "candidate": cand,
+            "raw_cosine": round(raw_score, 3),
+            "match_percentage": score_data["percentage"],
+            "verdict": score_data["verdict"],
+            "evaluation": evaluation
+        })
+
+    results.sort(key=lambda x: x["match_percentage"], reverse=True)
+    return {"job": selected_job, "rankings": results}
+
+
+@app.post("/api/upload-pdf-resume")
+async def upload_pdf_resume(
+    file: UploadFile = File(...),
+    name: str = Form(None),
+    title: str = Form(None)
+):
+    """Delegates ingestion and parsing to Agent 1."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files (.pdf) are allowed.")
+
+    contents = await file.read()
+
+    try:
+        extraction_result = extractor_agent.execute(contents, file.filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    cand_id = f"CAND_{len(resumes) + 1:02d}"
+    candidate_name = name.strip() if name and name.strip() else file.filename.replace(".pdf", "")
+    candidate_title = title.strip() if title and title.strip() else "PDF Candidate"
+
+    new_candidate = {
+        "id": cand_id,
+        "name": candidate_name,
+        "current_title": candidate_title,
+        "skills": f"Extracted from {file.filename}",
+        "summary": extraction_result["text"][:600] + ("..." if len(extraction_result["text"]) > 600 else "")
+    }
+
+    resumes.append(new_candidate)
+    return {"status": "success", "candidate": new_candidate}
+
+
+@app.put("/api/resumes/{cand_id}")
+def update_candidate(cand_id: str, payload: UpdateCandidateRequest):
+    cand = next((c for c in resumes if c["id"] == cand_id), None)
+    if not cand:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    cand["name"] = payload.name
+    cand["current_title"] = payload.current_title
+    cand["skills"] = payload.skills
+    cand["summary"] = payload.summary
+    return {"status": "success", "candidate": cand}
+
+
+@app.delete("/api/resumes/{cand_id}")
+def delete_candidate(cand_id: str):
+    global resumes
+    orig_len = len(resumes)
+    resumes = [c for c in resumes if c["id"] != cand_id]
+    if len(resumes) == orig_len:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return {"status": "success", "remaining": len(resumes)}
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+def serve_home():
+    return FileResponse("static/index.html")
